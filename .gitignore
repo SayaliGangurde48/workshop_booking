@@ -45,3 +45,10 @@ db.sqlite3
 #images/gif
 *.png
 *.gif
+!docs/screenshots/*.png
+
+# frontend
+node_modules/
+.venv/
+node-v*-win-x64/
+node-v*-win-x64.zip
