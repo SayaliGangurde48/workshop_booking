@@ -162,47 +162,83 @@ Add before-and-after screenshots for the pages below before submission.
 
 ### Desktop views
 
-1. Login
-   Before: `docs/screenshots/login-before-desktop.png`
-   After: `docs/screenshots/login-after-desktop.png`
-2. Registration
-   Before: `docs/screenshots/register-before-desktop.png`
-   After: `docs/screenshots/register-after-desktop.png`
-3. Coordinator dashboard
-   Before: `docs/screenshots/coordinator-before-desktop.png`
-   After: `docs/screenshots/coordinator-after-desktop.png`
-4. Instructor dashboard
-   Before: `docs/screenshots/instructor-before-desktop.png`
-   After: `docs/screenshots/instructor-after-desktop.png`
-5. Workshop types
-   Before: `docs/screenshots/workshop-types-before-desktop.png`
-   After: `docs/screenshots/workshop-types-after-desktop.png`
-6. Propose workshop
-   Before: `docs/screenshots/propose-before-desktop.png`
-   After: `docs/screenshots/propose-after-desktop.png`
-7. Public statistics
-   Before: `docs/screenshots/statistics-before-desktop.png`
-   After: `docs/screenshots/statistics-after-desktop.png`
-8. Team statistics
-   Before: `docs/screenshots/team-stats-before-desktop.png`
-   After: `docs/screenshots/team-stats-after-desktop.png`
-9. Workshop details
-   Before: `docs/screenshots/workshop-details-before-desktop.png`
-   After: `docs/screenshots/workshop-details-after-desktop.png`
+#### 1. Login
+| Before | After |
+|--------|-------|
+| ![](docs/screenshots/login-before-desktop.png) | ![](docs/screenshots/login-after-desktop.png) |
+
+#### 2. Registration
+| Before | After |
+|--------|-------|
+| ![](docs/screenshots/register-before-desktop.png) | ![](docs/screenshots/register-after-desktop.png) |
+
+#### 3. Coordinator Dashboard
+| Before | After |
+|--------|-------|
+| ![](docs/screenshots/coordinator-before-desktop.png) | ![](docs/screenshots/coordinator-after-desktop.png) |
+
+#### 4. Instructor Dashboard
+| Before | After |
+|--------|-------|
+| ![](docs/screenshots/instructor-before-desktop.png) | ![](docs/screenshots/instructor-after-desktop.png) |
+
+#### 5. Workshop Types
+| Before | After |
+|--------|-------|
+| ![](docs/screenshots/workshop-types-before-desktop.png) | ![](docs/screenshots/workshop-types-after-desktop.png) |
+
+#### 6. Propose Workshop
+| Before | After |
+|--------|-------|
+| ![](docs/screenshots/propose-before-desktop.png) | ![](docs/screenshots/propose-after-desktop.png) |
+
+#### 7. Public Statistics
+| Before | After |
+|--------|-------|
+| ![](docs/screenshots/statistics-before-desktop.png) | ![](docs/screenshots/statistics-after-desktop.png) |
+
+#### 8. Team Statistics
+| Before | After |
+|--------|-------|
+| ![](docs/screenshots/team-stats-before-desktop.png) | ![](docs/screenshots/team-stats-after-desktop.png) |
+
+#### 9. Workshop Details
+| Before | After |
+|--------|-------|
+| ![](docs/screenshots/workshop-details-before-desktop.png) | ![](docs/screenshots/workshop-details-after-desktop.png) |
+
+---
 
 ### Mobile views
 
-Add at least one mobile screenshot for each of the main redesigned pages:
+#### Login
+![](docs/screenshots/login-after-mobile.png)
 
-- `docs/screenshots/login-after-mobile.png`
-- `docs/screenshots/register-after-mobile.png`
-- `docs/screenshots/coordinator-after-mobile.png`
-- `docs/screenshots/instructor-after-mobile.png`
-- `docs/screenshots/workshop-types-after-mobile.png`
-- `docs/screenshots/workshop-details-after-mobile.png`
-- `docs/screenshots/propose-after-mobile.png`
-- `docs/screenshots/statistics-after-mobile.png`
-- `docs/screenshots/team-stats-after-mobile.png`
+#### Registration
+![](docs/screenshots/register-after-mobile.png)
+
+#### Coordinator Dashboard
+![](docs/screenshots/coordinator-after-mobile.png)
+
+#### Instructor Dashboard
+![](docs/screenshots/instructor-after-mobile.png)
+
+#### Workshop Types
+![](docs/screenshots/workshop-types-after-mobile.png)
+
+#### Workshop Details
+![](docs/screenshots/workshop-details-after-mobile.png)
+
+#### Propose Workshop
+![](docs/screenshots/propose-after-mobile.png)
+
+#### Public Statistics
+![](docs/screenshots/statistics-after-mobile.png)
+
+#### Team Statistics
+![](docs/screenshots/team-stats-after-mobile.png)
+
+---
 
 ## Notes
 
