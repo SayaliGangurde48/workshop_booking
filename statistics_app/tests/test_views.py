@@ -1,201 +1,107 @@
-from workshop_app.views import view_profile, user_login, edit_profile
+from datetime import timedelta
+
+from django.contrib.auth.models import Group, User
 from django.test import TestCase
-from workshop_app.models import Profile, User, Workshop, WorkshopType,\
-                    RequestedWorkshop, BookedWorkshop, ProposeWorkshopDate,\
-                    has_profile
-from datetime import datetime
-from json import dumps
-from django.test import Client
-from django.contrib.auth.models import Group, Permission
-from django.contrib.auth import authenticate
-from django.core.urlresolvers import reverse
-from workshop_app.forms import CreateWorkshop
-from django.conf import settings
+from django.urls import reverse
+from django.utils import timezone
+
+from teams.models import Team
+from workshop_app.models import Profile, Workshop, WorkshopType
 
 
-class TestProfile(TestCase):
-	def setUp(self):
-		self.client = Client()
+class StatisticsViewTests(TestCase):
+    def setUp(self):
+        self.instructor_group = Group.objects.create(name="instructor")
+        self.instructor = User.objects.create_user(
+            username="instructor",
+            password="pass@123",
+            email="instructor@example.com",
+            first_name="Ira",
+            last_name="Instructor",
+        )
+        self.coordinator = User.objects.create_user(
+            username="coordinator",
+            password="pass@123",
+            email="coordinator@example.com",
+            first_name="Cora",
+            last_name="Coordinator",
+        )
+        self.outsider = User.objects.create_user(
+            username="outsider",
+            password="pass@123",
+            email="outsider@example.com",
+            first_name="Otis",
+            last_name="Outsider",
+        )
 
-		self.user1 = User.objects.create(
-			username='demo_test_user1',
-			password='pass@123',
-			email='test.user@gmail.com')
+        self.instructor_group.user_set.add(self.instructor)
 
-		self.user2 = User.objects.create(
-			username='demo_test_user2',
-			email='test.user@gmail.com')
+        self.instructor_profile = self._create_profile(self.instructor, "instructor")
+        self.coordinator_profile = self._create_profile(self.coordinator, "coordinator")
+        self.outsider_profile = self._create_profile(self.outsider, "instructor")
 
-		self.user2.set_password('pass@123')
-		self.user2.save()
+        self.workshop_type = WorkshopType.objects.create(
+            name="Introduction to Python",
+            description="A basic Python workshop.",
+            duration=2,
+            terms_and_conditions="Bring a laptop and projector access.",
+        )
+        Workshop.objects.create(
+            coordinator=self.coordinator,
+            instructor=self.instructor,
+            workshop_type=self.workshop_type,
+            date=timezone.now().date() + timedelta(days=7),
+            status=1,
+            tnc_accepted=True,
+        )
 
-		self.user2_profile = Profile.objects.create(
-			user=self.user2,
-			department='Computer Engineering',
-			institute='ace',
-			title='Doctor',
-			position='instructor',
-			phone_number='1122993388',
-			location='mumbai',
-			how_did_you_hear_about_us='Google',
-			state='IN-MH',
-			is_email_verified=1
-			)
+        self.team = Team.objects.create(creator=self.instructor)
+        self.team.members.add(self.instructor_profile)
 
-	def test_has_profile_for_user_without_profile(self):
-		"""
-		If no profile exists for user passed as argument return False
-		"""
-		has_profile_status = has_profile(self.user1)
-		self.assertFalse(has_profile_status)
+    def _create_profile(self, user, position):
+        return Profile.objects.create(
+            user=user,
+            title="Mr",
+            institute="FOSSEE",
+            department="computer engineering",
+            phone_number="9876543210",
+            position=position,
+            how_did_you_hear_about_us="FOSSEE website",
+            location="Mumbai",
+            state="IN-MH",
+            is_email_verified=True,
+        )
 
-	def test_has_profile_for_user_with_profile(self):
-		"""
-		If profile exists for user passed as argument return True
-		"""
-		has_profile_status = has_profile(self.user2)
-		self.assertTrue(has_profile_status)
+    def test_public_statistics_page_renders(self):
+        response = self.client.get(reverse("statistics_app:public"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "react-page-root")
 
-	def test_view_profile_denies_anonymous(self):
-		"""
-		If not logged in redirect to login page
-		"""
-		response = self.client.get(reverse(view_profile), follow=True)
-		redirect_destination = '/login/?next=/view_profile/'
-		self.assertTrue(response.status_code,200)
-		self.assertRedirects(response, redirect_destination)
+    def test_public_statistics_supports_filter_query(self):
+        response = self.client.get(
+            reverse("statistics_app:public"),
+            {
+                "from_date": timezone.now().date().isoformat(),
+                "to_date": (timezone.now().date() + timedelta(days=30)).isoformat(),
+                "workshop_type": self.workshop_type.id,
+                "state": "IN-MH",
+                "sort": "date",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
 
-	def test_edit_profile_get(self):
-		"""
-		GET request to edit profile should display profile form
-		"""
+    def test_team_statistics_page_renders_for_team_member(self):
+        self.client.force_login(self.instructor)
+        response = self.client.get(reverse("statistics_app:team"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "team-stats")
 
-		self.client.login(username=self.user2, password='pass@123')
-		response = self.client.get(reverse(edit_profile))
-		user_profile = User.objects.get(id=self.user2.id)
-		profile = Profile.objects.get(user=user_profile)
-		self.assertEqual(response.status_code, 200)
-		self.assertEqual(profile.institute, 'ace')
-		self.client.logout()
-
-	def test_edit_profile_post(self):
-
-		self.client.login(username=self.user2, password='pass@123')
-		response = self.client.post('/edit_profile/',
-			{
-				'first_name': 'demo_test',
-				'last_name': 'user2',
-				'institute': 'IIT',
-				'department': 'aerospace engineering'
-					})
-
-		updated_profile_user = User.objects.get(id=self.user2.id)
-		updated_profile = Profile.objects.get(user=updated_profile_user)
-		self.assertEqual(updated_profile.institute, 'IIT')
-		self.assertEqual(updated_profile.department, 'aerospace engineering')
-		self.assertEqual(updated_profile.position, 'instructor')
-		self.assertEqual(response.status_code, 200)
-		# self.assertTemplateUsed(response, 'workshop_app/profile_updated.html')
-
-	def test_register_page(self):
-		self.client.get('/register/')
-		self.register_response = self.client.post('/register/',
-			data={
-			'username':'testuser',
-			'email':'test@user.com',
-			'password':'ABCD@123*',
-			'confirm password':'ABCD@123*',
-			'first name':'testor',
-			'last name':'user',
-			'phone number': 1234567890,
-			'institute':'IIT',
-			'location':'mumbai',
-			'state': (2),
-			'department':(2)})
-
-		self.assertEqual(self.register_response.status_code,200)
-
-
-class TestWorkshopStats(TestCase):
-	def setUp(self):
-		'''
-		test user as instructor
-		'''
-		self.superuser = User.objects.create_superuser(
-			username='admin',
-			password='pass@123',
-			email='test.user@gmail.com')
-
-		self.mod_group = Group.objects.create(name='instructor')
-
-		self.user_one = User.objects.create(
-			username='test_user1',
-			email='test.user@gmail.com')
-
-		self.user_one.set_password('pass@123')
-		self.user_one.save()
-
-		self.user_one_profile = Profile.objects.create(
-			user=self.user_one,
-			department='cs',
-			institute='IIT',
-			position='instructor',
-			phone_number='1122993388',
-			is_email_verified=1
-			)
-
-		#Add user_one in instructor group and give required permissions
-		self.mod_group.user_set.add(self.user_one)
-		self.permission = (Permission.objects.all())
-		self.user_one.user_permissions.add(self.permission[44])
-		self.user_one.user_permissions.add(self.permission[43])
-		self.user_one.user_permissions.add(self.permission[42])
-
-		self.user_two = User.objects.create(
-			username='test_user2',
-			email='test.user2@gmail.com')
-
-		self.user_two.set_password('pass@123')
-		self.user_two.save()
-
-		self.user_two_profile = Profile.objects.create(
-			user=self.user_two,
-			department='cs',
-			institute='IIT',
-			position='coordinator',
-			phone_number='1122993388',
-			is_email_verified=1
-			)
-
-	def test_workshop_stats(self):
-		settings.SHOW_WORKSHOP_STATS = True
-		self.client.login(username=self.user_one, password='pass@123')
-		response = self.client.post('/statistics/',
-				{
-					'from': '2017-01-01',
-					'to': '2017-12-31',
-					'Download': 'download'
-				}
-			)
-		self.assertEqual(response.status_code, 200)
-
-	def test_workshop_public_stats(self):
-		settings.SHOW_WORKSHOP_STATS = True
-		response = self.client.post('/statistics/public_stats/',
-				{
-					'from': '2017-01-01',
-					'to': '2017-12-31',
-					'View': 'view'
-				}
-			)
-		self.assertEqual(response.status_code, 200)
-
-	def test_profile_stats(self):
-		#Coordinator
-		self.client.login(username=self.user_two, password='pass@123')
-		cresp = self.client.get('/statistics/profile_stats/')
-		self.assertEqual(cresp.templates[0].name, 'workshop_app/logout.html')
-		#Instructor
-		self.client.login(username=self.user_one, password='pass@123')
-		response = self.client.get('/statistics/profile_stats/')
-		self.assertEqual(response.status_code, 200)
+    def test_team_statistics_redirects_for_non_member(self):
+        self.client.force_login(self.outsider)
+        response = self.client.get(reverse("statistics_app:team"))
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(
+            response,
+            reverse("workshop_app:index"),
+            target_status_code=302,
+        )
