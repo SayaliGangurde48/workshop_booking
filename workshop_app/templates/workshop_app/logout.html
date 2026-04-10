@@ -1,18 +1,22 @@
 {% extends 'workshop_app/base.html' %}
 
-	{% block title %}
-		Logged out
-	{% endblock %}
+{% block title %}Logged Out{% endblock %}
 
+{% block page_intro %}
+    <div
+        data-react-shell="intro"
+        data-title="You have logged out"
+        data-description="Your session has ended. Sign in again whenever you need to continue."
+    ></div>
+{% endblock %}
 
-	{% block content %}
-		<div class="container" align="center">
-			<br>
-			<h3>You have logged out successfully.</h3>
-			<h4>If you want to login again please
-				<a href="/">click here</a>
-			</h4>
-			<br>
-		</div>
-
-	{% endblock %}
+{% block content %}
+    <section class="notice-card">
+        <h2>Signed out</h2>
+        <p class="mb-4">If you want to continue, you can sign in again from the main login page.</p>
+        <div class="form-actions">
+            <a href="{% url 'workshop_app:login' %}" class="btn btn-primary">Sign in again</a>
+            <a href="{% url 'statistics_app:public' %}" class="btn btn-outline-secondary">View public statistics</a>
+        </div>
+    </section>
+{% endblock %}

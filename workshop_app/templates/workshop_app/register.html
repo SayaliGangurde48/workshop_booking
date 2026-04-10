@@ -1,35 +1,13 @@
 {% extends 'workshop_app/base.html' %}
 
-	{% block title %}
-		Register
-	{% endblock %}
+{% block title %}Register{% endblock %}
+{% block meta_description %}Create a coordinator account to request, track, and manage workshop bookings.{% endblock %}
 
 {% block content %}
-
-	<style type="text/css">
-    	label.required::after {
-    	content: "*";
-    	color: red;
-		}
-
-		.errorlist {
-      color: red;
-    }
-	</style>
-
-	<div class="container" >
-		<br>
-		<h3>Coordinator Registration Form</h3>
-		<br>
-		<form action="" method="post">
-			{% csrf_token %}
-				<table class="table table-bordered">
-					{{ form.as_table }}
-				</table>
-
-				<button class="btn btn-primary" type="submit">Register</button>
-		</form><br>
-		<!-- Activate when Instructor registeration starts -->
-		<br>
-	</div>
+    <div id="react-page-root"
+         data-react-page="register"
+         data-csrf-token="{{ csrf_token }}"
+         data-form-action="{% url 'workshop_app:register' %}">
+    </div>
+    {{ page_data|json_script:"react-page-data" }}
 {% endblock %}

@@ -1,76 +1,48 @@
 {% extends 'workshop_app/base.html' %}
 
-{% block title %}
-    Awaiting activation
-{% endblock %}
+{% block title %}Account Activation{% endblock %}
 
-{% block header %}
-    <nav class="navbar navbar-default navbar-dark bg-dark">
-        <div class="container-fluid">
-            <div class="navbar-header">
-                <a class="navbar-brand text-white" href="/">
-                    FOSSEE Workshops
-                </a>
-            </div>
-            <ul class="nav navbar-nav navbar-right">
-                {% if request.user.profile.is_email_verified %}
-                    <li><a href="{% url 'workshop_app:view_profile' %}"><span class="glyphicon glyphicon-user"></span>
-                        Profile</a></li>
-
-                    <li><a href="{% url 'workshop_app:logout' %}"><span class="glyphicon glyphicon-log-out"></span> Logout</a>
-                    </li>
-                {% endif %}
-            </ul>
-        </div>
-    </nav>
-{% endblock %}
-
-{% block extra %}
-
+{% block page_intro %}
+    <div
+        data-react-shell="intro"
+        data-title="Account activation"
+        data-description="Check the status of your email verification and continue to the next step."
+    ></div>
 {% endblock %}
 
 {% block content %}
     {% if status == '2' %}
-        <div class="container">
-            <div class="jumbotron">
-                <p> Your email is already verified, Click
-                    <a href="{% url 'workshop_app:index' %}">here</a>
-                </p>
-            </div>
-        </div>
+        <section class="notice-card">
+            <h2>Email already verified</h2>
+            <p class="mb-0">Your account is already active. You can continue to the <a href="{% url 'workshop_app:index' %}">dashboard</a>.</p>
+        </section>
     {% elif status == '1' %}
-        <script type="text/javascript">
+        <script>
             window.setTimeout(function () {
-                location.href = "{% url 'workshop_app:register' %}"
+                location.href = "{% url 'workshop_app:register' %}";
             }, 3000);
         </script>
-        <div class="container">
-            <div class="jumbotron">
-                <p> Your activation has expired please register again</p>
-            </div>
-        </div>
+        <section class="notice-card">
+            <h2>Activation link expired</h2>
+            <p class="mb-0">The activation window has expired. You will be redirected to register again in a few seconds.</p>
+        </section>
     {% elif status == '0' %}
-        <div class="container">
-            <div class="jumbotron">
-                <p> Your account has been activated. Click
-                    <a href="{% url 'workshop_app:index' %}">here</a>
-                </p>
-            </div>
-        </div>
+        <section class="notice-card">
+            <h2>Account activated</h2>
+            <p class="mb-0">Your account has been activated successfully. Continue to the <a href="{% url 'workshop_app:index' %}">home page</a>.</p>
+        </section>
     {% else %}
-        <script type="text/javascript">
+        <script>
             window.setTimeout(function () {
-                location.href = "{% url 'workshop_app:logout' %}"
+                location.href = "{% url 'workshop_app:logout' %}";
             }, 5000);
         </script>
-
-        <div class="container">
-            <div class="jumbotron">
-                <h1>Activation Awaiting</h1>
-                <p>The Activation Link has been sent to your email. The link expires in <strong>24hours</strong> from
-                    the date of registration. You will be logged out automatically
-                </p>
-            </div>
-        </div>
+        <section class="notice-card">
+            <h2>Waiting for email verification</h2>
+            <p class="mb-0">
+                The activation link has been generated for your account. It expires in 24 hours, and you will be logged
+                out automatically in a few seconds.
+            </p>
+        </section>
     {% endif %}
 {% endblock %}
