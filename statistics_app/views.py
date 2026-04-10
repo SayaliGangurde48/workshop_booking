@@ -18,6 +18,7 @@ from workshop_app.models import (
     Profile, User, has_profile, Workshop, WorkshopType, Testimonial,
     states
 )
+from workshop_app.ui_data import serialize_form, serialize_pagination
 from teams.models import Team
 from .forms import FilterForm
 
@@ -95,9 +96,32 @@ def workshop_public_stats(request):
     paginator = Paginator(workshops, 30)
     page = request.GET.get('page')
     workshops = paginator.get_page(page)
+    results = []
+    for index, workshop in enumerate(workshops, start=workshops.start_index()):
+        results.append({
+            "index": index,
+            "coordinator": workshop.coordinator.get_full_name(),
+            "institute": workshop.coordinator.profile.institute,
+            "instructor": workshop.instructor.get_full_name(),
+            "workshop": workshop.workshop_type.name,
+            "date": workshop.date.strftime("%B %d, %Y"),
+        })
+    field_names = ["from_date", "to_date", "workshop_type", "state", "sort"]
+    if request.user.is_authenticated:
+        field_names.append("show_workshops")
+
     context = {"form": form, "objects": workshops, "ws_states": ws_states,
                "ws_count": ws_count, "ws_type": ws_type,
-               "ws_type_count": ws_type_count}
+               "ws_type_count": ws_type_count,
+               "page_data": {
+                   "form": serialize_form(form, field_names),
+                   "results": results,
+                   "pagination": serialize_pagination(workshops),
+                   "charts": {
+                       "states": {"labels": ws_states, "values": ws_count},
+                       "types": {"labels": ws_type, "values": ws_type_count},
+                   },
+               }}
     return render(
         request, 'statistics_app/workshop_public_stats.html', context
     )
@@ -107,9 +131,18 @@ def workshop_public_stats(request):
 def team_stats(request, team_id=None):
     user = request.user
     teams = Team.objects.all()
+    if not teams.exists():
+        messages.add_message(
+            request, messages.INFO, "No teams have been created yet."
+        )
+        return redirect(reverse("workshop_app:index"))
+
     if team_id:
-        team = teams.get(id=team_id)
+        team = teams.filter(id=team_id).first()
     else:
+        team = teams.first()
+
+    if team is None:
         team = teams.first()
     if not team.members.filter(user_id=user.id).exists():
         messages.add_message(
@@ -117,15 +150,48 @@ def team_stats(request, team_id=None):
         )
         return redirect(reverse("workshop_app:index"))
 
-    member_workshop_data = {}
+    indexed_teams = list(enumerate(teams, start=1))
+    member_workshop_data = []
     for member in team.members.all():
         workshop_count = Workshop.objects.filter(
             instructor_id=member.user.id).count()
-        member_workshop_data[member.user.get_full_name()] = workshop_count
-    team_labels = list(member_workshop_data.keys())
-    ws_count = list(member_workshop_data.values())
+        member_workshop_data.append({
+            "name": member.user.get_full_name() or member.user.username,
+            "count": workshop_count,
+        })
+
+    team_index = next(
+        (index for index, current_team in indexed_teams if current_team.id == team.id),
+        1
+    )
+    total_workshops = sum(item["count"] for item in member_workshop_data)
+    active_members = sum(1 for item in member_workshop_data if item["count"] > 0)
+
     return render(
         request, 'statistics_app/team_stats.html',
-        {'team_labels': team_labels, "ws_count": ws_count, 'all_teams': teams,
-         'team_id': team.id}
+        {
+            'page_data': {
+                "selected_team_label": f"Team {team_index}",
+                "teams": [
+                    {
+                        "id": current_team.id,
+                        "label": f"Team {index}",
+                        "href": reverse("statistics_app:team", args=[current_team.id]),
+                        "active": current_team.id == team.id,
+                        "member_count": current_team.members.count(),
+                    }
+                    for index, current_team in indexed_teams
+                ],
+                "members": member_workshop_data,
+                "chart": {
+                    "labels": [item["name"] for item in member_workshop_data],
+                    "values": [item["count"] for item in member_workshop_data],
+                },
+                "summary": {
+                    "member_count": len(member_workshop_data),
+                    "active_members": active_members,
+                    "total_workshops": total_workshops,
+                },
+            }
+        }
     )

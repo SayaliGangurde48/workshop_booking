@@ -1,111 +1,141 @@
 {% extends 'workshop_app/base.html' %}
-{% load static %}
+{% block title %}Edit Workshop Type{% endblock %}
+{% block meta_description %}Update workshop details and attachments used by coordinators and instructors.{% endblock %}
 
-{% block title %}
-    Add new Workshop type
-{% endblock %}
-
-{% block extra-dependencies %}
-{% endblock %}
-
-{% block extra-custom-scripts %}
-
-    <script src="{% static 'workshop_app/js/jquery.formset.js' %}"></script>
+{% block page_intro %}
+    <div
+        data-react-shell="intro"
+        data-title="Edit workshop type"
+        data-description="Update the summary, duration, terms, and attachments shown to coordinators before they submit a request."
+    ></div>
 {% endblock %}
 
 {% block content %}
-    <div class="container">
-        <h2 class="text-center m-2">View / Edit Workshop Type</h2>
-        <br>
-        <form method="post" enctype="multipart/form-data">
-            <div class="row my-3">
-                <div class="col-3 font-weight-bold">Workshop Name :</div>
-                <div class="col text-left">
-                    <div class="row">
-                        <div class="col">{{ form.name }}</div>
-                    </div>
-                    <div class="row m-1 text-danger">
-                        <div class="col">{{ form.name.errors }}</div>
-                    </div>
-                </div>
+    <section class="content-card">
+        <div class="header-actions mb-4">
+            <div>
+                <h2>Edit workshop type</h2>
+                <p class="section-description mb-0">Update the workshop information and supporting attachments in one place.</p>
+            </div>
+            <a href="{% url 'workshop_app:workshop_type_list' %}" class="btn btn-outline-secondary">Back to list</a>
+        </div>
 
-            </div>
-            <div class="row my-3">
-                <div class="col-3 font-weight-bold">Duration :</div>
-                <div class="col text-left">
-                    <div class="row">
-                        <div class="col">{{ form.duration }}</div>
-                    </div>
-                    <div class="row m-1 text-muted">
-                        <div class="col">{{ form.duration.help_text }}</div>
-                    </div>
-                    <div class="row m-1 text-danger">
-                        <div class="col">{{ form.duration.errors }}</div>
-                    </div>
+        <form method="post" enctype="multipart/form-data" class="section-stack attachment-editor">
+            {% csrf_token %}
+            <div class="form-grid">
+                <div class="field-group field-span-2 required">
+                    <label for="{{ form.name.id_for_label }}">Workshop name</label>
+                    {{ form.name }}
+                    {{ form.name.errors }}
                 </div>
-            </div>
-            <div class="row my-3">
-                <div class="col-3 font-weight-bold">Description :</div>
-                <div class="col text-left">
-                    <div class="row">
-                        <div class="col">{{ form.description }}</div>
-                    </div>
-                    <div class="row m-1 text-danger">
-                        <div class="col">{{ form.description.errors }}</div>
-                    </div>
+                <div class="field-group required">
+                    <label for="{{ form.duration.id_for_label }}">Duration</label>
+                    {{ form.duration }}
+                    <small class="form-helptext">{{ form.duration.help_text }}</small>
+                    {{ form.duration.errors }}
                 </div>
-            </div>
-            <div class="row my-3">
-                <div class="col-3 font-weight-bold">Terms and Conditions :</div>
-                <div class="col text-left">
-                    <div class="row">
-                        <div class="col">{{ form.terms_and_conditions }}</div>
-                    </div>
-                    <div class="row m-1 text-danger">
-                        <div class="col">{{ form.terms_and_conditions.errors }}</div>
-                    </div>
+                <div class="field-group field-span-2 required">
+                    <label for="{{ form.description.id_for_label }}">Description</label>
+                    {{ form.description }}
+                    {{ form.description.errors }}
+                </div>
+                <div class="field-group field-span-2 required">
+                    <label for="{{ form.terms_and_conditions.id_for_label }}">Terms and conditions</label>
+                    {{ form.terms_and_conditions }}
+                    {{ form.terms_and_conditions.errors }}
                 </div>
             </div>
 
-            <h2 class="text-center m-2">Attachments</h2>
-            {{ form_file.management_form }}
-            {{ form_file.non_form_errors }}
-            {% for form in form_file %}
-                <div class="inline {{ form_file.prefix }} my-4">
-                    <div class="row">
-                        <div class="col-11">
-                            {% for field in form %}
-                                <div class="col-6">{{ field }}</div>
+            <section class="attachment-section">
+                <div class="header-actions mb-4">
+                    <div>
+                        <h2>Attachments</h2>
+                        <p class="section-description mb-0">Upload supporting files coordinators can open before or after they submit a request.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary" id="add-attachment-button">Add attachment</button>
+                </div>
+
+                {{ form_file.management_form }}
+                {{ form_file.non_form_errors }}
+
+                <div id="attachment-formset" class="section-stack">
+                    {% for attachment_form in form_file %}
+                        <article class="attachment-item inline {{ form_file.prefix }}">
+                            {% for hidden in attachment_form.hidden_fields %}
+                                {{ hidden }}
                             {% endfor %}
-                        </div>
-                    {% if form.id.value %}
-                    <div class="col-1">
-                        <a href="{% url 'workshop_app:delete_attachment_file' form.id.value %}"><button class="btn btn-md btn-danger float-right" type="button">Delete</button></a>
-                    </div>
-                    {% endif %}
-                    </div>
+                            <div class="attachment-item-grid">
+                                {% for field in attachment_form.visible_fields %}
+                                    <div class="field-group {% if field.name == 'attachments' %}field-span-2{% endif %}">
+                                        {% if field.name == 'attachments' %}
+                                            <label for="{{ field.id_for_label }}">Attachment</label>
+                                        {% else %}
+                                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {% endif %}
+                                        {{ field }}
+                                        {{ field.errors }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if attachment_form.id.value %}
+                                <div class="attachment-actions">
+                                    <a href="{% url 'workshop_app:delete_attachment_file' attachment_form.id.value %}" class="btn btn-outline-secondary btn-sm">Remove file</a>
+                                </div>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                </div>
 
-                </div>
-                <hr>
-            {% endfor %}
-            <div class="row my-3">
-                <div class="col-12">
-                    <button type="submit" class="btn btn-md btn-primary float-right m-3">Save</button>
-                </div>
+                <template id="attachment-empty-form">
+                    <article class="attachment-item inline {{ form_file.prefix }}">
+                        {% with empty_form=form_file.empty_form %}
+                            {% for hidden in empty_form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                            <div class="attachment-item-grid">
+                                {% for field in empty_form.visible_fields %}
+                                    <div class="field-group {% if field.name == 'attachments' %}field-span-2{% endif %}">
+                                        {% if field.name == 'attachments' %}
+                                            <label for="{{ field.id_for_label }}">Attachment</label>
+                                        {% else %}
+                                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {% endif %}
+                                        {{ field }}
+                                        {{ field.errors }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endwith %}
+                    </article>
+                </template>
+            </section>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save changes</button>
+                <a href="{% url 'workshop_app:workshop_type_list' %}" class="btn btn-outline-secondary">Cancel</a>
             </div>
         </form>
-    </div>
-    <br><br><br><br>
-    <script type="text/javascript">
-        $(function () {
-            $(".inline.{{ form_file.prefix }}").formset({
-                prefix: "{{ form_file.prefix }}", // The form prefix for your django formset
-                addCssClass: "btn btn-md btn-primary bordered inline-form-add", // CSS class applied to the add link
-                deleteCssClass: "hidden", // CSS class applied to the delete link
-                addText: 'Add another attachment', // Text for the add link
-                deleteText: '',
-                formCssClass: 'inline-form' // CSS class applied to each form in a formset
-            })
-        });
+    </section>
+
+    <script>
+        (function () {
+            const addButton = document.getElementById("add-attachment-button");
+            const formset = document.getElementById("attachment-formset");
+            const totalForms = document.getElementById("id_{{ form_file.prefix }}-TOTAL_FORMS");
+            const template = document.getElementById("attachment-empty-form");
+
+            if (!addButton || !formset || !totalForms || !template) {
+                return;
+            }
+
+            addButton.addEventListener("click", function () {
+                const nextIndex = Number(totalForms.value);
+                const markup = template.innerHTML.replace(/__prefix__/g, nextIndex);
+                const wrapper = document.createElement("div");
+                wrapper.innerHTML = markup.trim();
+                formset.appendChild(wrapper.firstElementChild);
+                totalForms.value = String(nextIndex + 1);
+            });
+        })();
     </script>
 {% endblock %}

@@ -21,8 +21,9 @@ from .forms import (
     UserRegistrationForm, UserLoginForm,
     ProfileForm, WorkshopForm, CommentsForm, WorkshopTypeForm
 )
+from .ui_data import serialize_form, serialize_pagination
 from .models import (
-    Profile, User,
+    Profile, User, has_profile,
     Workshop, Comment,
     WorkshopType, AttachmentFile
 )
@@ -54,6 +55,64 @@ def get_landing_page(user):
     return reverse('workshop_app:workshop_status_coordinator')
 
 
+def serialize_dashboard_workshop(workshop):
+    return {
+        "id": workshop.id,
+        "title": str(workshop.workshop_type),
+        "detail_url": reverse("workshop_app:workshop_details", args=[workshop.id]),
+        "date": workshop.date.strftime("%B %d, %Y"),
+        "status": workshop.get_status(),
+        "status_code": workshop.status,
+        "instructor_name": workshop.instructor.get_full_name() if workshop.instructor else "",
+        "coordinator_name": workshop.coordinator.get_full_name(),
+        "coordinator_profile_url": reverse("workshop_app:view_profile", args=[workshop.coordinator_id]),
+        "institute": workshop.coordinator.profile.institute,
+        "accept_url": reverse("workshop_app:accept_workshop", args=[workshop.id]),
+        "change_date_url": reverse("workshop_app:change_workshop_date", args=[workshop.id]),
+        "can_change_date": bool(workshop.instructor and workshop.date > timezone.now().date()),
+        "date_iso": workshop.date.isoformat(),
+    }
+
+
+def serialize_workshop_type_card(workshop_type):
+    return {
+        "id": workshop_type.id,
+        "name": workshop_type.name,
+        "duration": workshop_type.duration,
+        "description": workshop_type.description,
+        "terms": workshop_type.terms_and_conditions,
+        "detail_url": reverse("workshop_app:workshop_type_details", args=[workshop_type.id]),
+    }
+
+
+def serialize_attachment_file(file):
+    return {
+        "filename": os.path.basename(file.attachments.name),
+        "label": "Open attachment",
+        "url": file.attachments.url,
+    }
+
+
+def serialize_comment(comment):
+    return {
+        "id": comment.id,
+        "author": comment.author.get_full_name() or comment.author.username,
+        "comment": comment.comment,
+        "public": comment.public,
+        "created_date": timezone.localtime(comment.created_date).strftime("%B %d, %Y %I:%M %p"),
+        "profile_url": reverse("workshop_app:view_profile", args=[comment.author_id]),
+    }
+
+
+def serialize_profile_activity_workshop(workshop):
+    return {
+        "id": workshop.id,
+        "instructor": workshop.instructor.get_full_name() if workshop.instructor else "",
+        "date": workshop.date.strftime("%B %d, %Y"),
+        "workshop_type": str(workshop.workshop_type),
+    }
+
+
 # View functions
 
 def index(request):
@@ -81,16 +140,41 @@ def user_login(request):
         form = UserLoginForm(request.POST)
         if form.is_valid():
             user = form.cleaned_data
+            if user.is_superuser:
+                login(request, user)
+                return redirect('/admin')
+            if not has_profile(user):
+                messages.add_message(
+                    request,
+                    messages.ERROR,
+                    "This account is missing profile details. Please contact the administrator."
+                )
+                return render(request, 'workshop_app/login.html', {
+                    "form": form,
+                    "page_data": {
+                        "form": serialize_form(form, ["username", "password"]),
+                    },
+                })
             if user.profile.is_email_verified:
                 login(request, user)
                 return redirect(get_landing_page(user))
             else:
                 return render(request, 'workshop_app/activation.html')
         else:
-            return render(request, 'workshop_app/login.html', {"form": form})
+            return render(request, 'workshop_app/login.html', {
+                "form": form,
+                "page_data": {
+                    "form": serialize_form(form, ["username", "password"]),
+                },
+            })
     else:
         form = UserLoginForm()
-        return render(request, 'workshop_app/login.html', {"form": form})
+    return render(request, 'workshop_app/login.html', {
+        "form": form,
+        "page_data": {
+            "form": serialize_form(form, ["username", "password"]),
+        },
+    })
 
 
 def user_logout(request):
@@ -154,7 +238,12 @@ def user_register(request):
                 return redirect('workshop:view_profile')
             return render(
                 request, "workshop_app/register.html",
-                {"form": form}
+                {
+                    "form": form,
+                    "page_data": {
+                        "form": serialize_form(form),
+                    },
+                }
             )
     else:
         if request.user.is_authenticated and is_email_checked(request.user):
@@ -162,7 +251,12 @@ def user_register(request):
         elif request.user.is_authenticated:
             return render(request, 'workshop_app/activation.html')
         form = UserRegistrationForm()
-    return render(request, "workshop_app/register.html", {"form": form})
+    return render(request, "workshop_app/register.html", {
+        "form": form,
+        "page_data": {
+            "form": serialize_form(form),
+        },
+    })
 
 
 # Workshop views
@@ -176,8 +270,22 @@ def workshop_status_coordinator(request):
     workshops = Workshop.objects.filter(
         coordinator=user.id
     ).order_by('-date')
+    accepted = [serialize_dashboard_workshop(workshop) for workshop in workshops if workshop.status]
+    pending = [
+        serialize_dashboard_workshop(workshop)
+        for workshop in workshops if not workshop.status and workshop.tnc_accepted
+    ]
     return render(request, 'workshop_app/workshop_status_coordinator.html',
-                  {"workshops": workshops})
+                  {
+                      "workshops": workshops,
+                      "page_data": {
+                          "accepted": accepted,
+                          "pending": pending,
+                          "empty": not workshops.exists(),
+                          "propose_url": reverse("workshop_app:propose_workshop"),
+                          "types_url": reverse("workshop_app:workshop_type_list"),
+                      },
+                  })
 
 
 @login_required
@@ -192,9 +300,21 @@ def workshop_status_instructor(request):
         date__gte=today,
     ) | Q(status=0)).order_by('-date')
 
+    accepted = [serialize_dashboard_workshop(workshop) for workshop in workshops if workshop.status]
+    pending = [
+        serialize_dashboard_workshop(workshop)
+        for workshop in workshops if not workshop.status and workshop.tnc_accepted
+    ]
+
     return render(request, 'workshop_app/workshop_status_instructor.html',
                   {"workshops": workshops,
-                   "today": today})
+                   "today": today,
+                   "page_data": {
+                       "accepted": accepted,
+                       "pending": pending,
+                       "empty": not workshops.exists(),
+                       "types_url": reverse("workshop_app:workshop_type_list"),
+                   }})
 
 
 @login_required
@@ -305,7 +425,18 @@ def propose_workshop(request):
         # GET request
         return render(
             request, 'workshop_app/propose_workshop.html',
-            {"form": form}
+            {
+                "form": form,
+                "page_data": {
+                    "form": serialize_form(form, ["workshop_type", "date", "tnc_accepted"]),
+                    "terms_by_workshop_type": {
+                        str(workshop_type.id): workshop_type.terms_and_conditions
+                        for workshop_type in WorkshopType.objects.all()
+                    },
+                    "status_url": reverse("workshop_app:workshop_status_coordinator"),
+                    "types_url": reverse("workshop_app:workshop_type_list"),
+                },
+            }
         )
 
 
@@ -364,7 +495,16 @@ def workshop_type_details(request, workshop_type_id):
 
     return render(
         request, 'workshop_app/workshop_type_details.html',
-        {'workshop_type': workshop_type}
+        {
+            'workshop_type': workshop_type,
+            'page_data': {
+                "name": workshop_type.name,
+                "duration": workshop_type.duration,
+                "description": workshop_type.description,
+                "terms": workshop_type.terms_and_conditions,
+                "attachments": [serialize_attachment_file(file) for file in qs],
+            }
+        }
     )
 
 
@@ -409,7 +549,15 @@ def workshop_type_list(request):
     page = request.GET.get('page')
     workshop_type = paginator.get_page(page)
 
-    return render(request, 'workshop_app/workshop_type_list.html', {'workshop_type': workshop_type})
+    return render(request, 'workshop_app/workshop_type_list.html', {
+        'workshop_type': workshop_type,
+        'page_data': {
+            "items": [serialize_workshop_type_card(item) for item in workshop_type],
+            "pagination": serialize_pagination(workshop_type),
+            "is_instructor": is_instructor(user),
+            "add_url": reverse("workshop_app:add_workshop_type") if is_instructor(user) else "",
+        },
+    })
 
 
 @login_required
@@ -418,16 +566,17 @@ def workshop_details(request, workshop_id):
     if not workshop.exists():
         raise Http404
     workshop = workshop.first()
+    comment_form = CommentsForm(initial={'public': True})
     if request.method == 'POST':
-        form = CommentsForm(request.POST)
-        if form.is_valid():
-            form_data = form.save(commit=False)
+        comment_form = CommentsForm(request.POST)
+        if comment_form.is_valid():
+            form_data = comment_form.save(commit=False)
             if not is_instructor(request.user):
                 form_data.public = True
             form_data.author = request.user
             form_data.created_date = timezone.now()
             form_data.workshop = workshop
-            form.save()
+            comment_form.save()
             messages.add_message(request, messages.SUCCESS, "Comment posted")
         else:
             messages.add_message(request, messages.ERROR, "Error posting comment")
@@ -436,8 +585,21 @@ def workshop_details(request, workshop_id):
     else:
         workshop_comments = Comment.objects.filter(workshop=workshop, public=True)
     return render(request, 'workshop_app/workshop_details.html',
-                  {'workshop': workshop, 'workshop_comments': workshop_comments,
-                   'form': CommentsForm(initial={'public': True})})
+                  {
+                      'workshop': workshop,
+                      'workshop_comments': workshop_comments,
+                      'form': comment_form,
+                      'page_data': {
+                          "title": str(workshop.workshop_type),
+                          "status": workshop.get_status(),
+                          "date": workshop.date.strftime("%B %d, %Y"),
+                          "coordinator_name": workshop.coordinator.get_full_name() or workshop.coordinator.username,
+                          "instructor_name": workshop.instructor.get_full_name() if workshop.instructor else "",
+                          "workshop_type_url": reverse("workshop_app:workshop_type_details", args=[workshop.workshop_type_id]),
+                          "form": serialize_form(comment_form),
+                          "comments": [serialize_comment(comment) for comment in workshop_comments],
+                      }
+                  })
 
 
 @login_required
@@ -468,8 +630,25 @@ def view_profile(request, user_id):
             'date')
 
         return render(request, "workshop_app/view_profile.html",
-                      {"coordinator_profile": coordinator_profile,
-                       "Workshops": workshops})
+                      {
+                          "coordinator_profile": coordinator_profile,
+                          "Workshops": workshops,
+                          "page_data": {
+                              "mode": "view",
+                              "title": coordinator_profile.user.get_full_name() or coordinator_profile.user.username,
+                              "details": [
+                                  {"label": "First name", "value": coordinator_profile.user.first_name},
+                                  {"label": "Last name", "value": coordinator_profile.user.last_name},
+                                  {"label": "Email", "value": coordinator_profile.user.email},
+                                  {"label": "Institute", "value": coordinator_profile.institute},
+                                  {"label": "Phone number", "value": coordinator_profile.phone_number},
+                                  {"label": "Department", "value": coordinator_profile.department},
+                                  {"label": "Location", "value": coordinator_profile.location},
+                                  {"label": "Role", "value": coordinator_profile.position},
+                              ],
+                              "workshops": [serialize_profile_activity_workshop(workshop) for workshop in workshops],
+                          }
+                      })
     return redirect(get_landing_page(user))
 
 
@@ -499,4 +678,16 @@ def view_own_profile(request):
         form = ProfileForm(user=user, instance=profile)
 
     return render(request, "workshop_app/view_profile.html",
-                  {"profile": profile, "Workshops": None, "form": form})
+                  {
+                      "profile": profile,
+                      "Workshops": None,
+                      "form": form,
+                      "page_data": {
+                          "mode": "edit",
+                          "cancel_url": reverse("workshop_app:index"),
+                          "form": serialize_form(form, [
+                              "title", "first_name", "last_name", "phone_number",
+                              "institute", "department", "position", "location", "state",
+                          ]),
+                      }
+                  })
