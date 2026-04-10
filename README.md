@@ -207,36 +207,45 @@ Add before-and-after screenshots for the pages below before submission.
 |--------|-------|
 | ![](docs/screenshots/workshop-details-before-desktop.png) | ![](docs/screenshots/workshop-details-after-desktop.png) |
 
----
-
 ### Mobile views
 
-#### Login
-![](docs/screenshots/login-after-mobile.png)
+<table align="center">
+  <tr>
+    <td align="center"><b>Login</b><br/>
+      <img src="docs/screenshots/login-after-mobile.png" width="220"/>
+    </td>
+    <td align="center"><b>Registration</b><br/>
+      <img src="docs/screenshots/register-after-mobile.png" width="220"/>
+    </td>
+    <td align="center"><b>Coordinator Dashboard</b><br/>
+      <img src="docs/screenshots/coordinator-after-mobile.png" width="220"/>
+    </td>
+  </tr>
 
-#### Registration
-![](docs/screenshots/register-after-mobile.png)
+  <tr>
+    <td align="center"><b>Instructor Dashboard</b><br/>
+      <img src="docs/screenshots/instructor-after-mobile.png" width="220"/>
+    </td>
+    <td align="center"><b>Workshop Types</b><br/>
+      <img src="docs/screenshots/workshop-types-after-mobile.png" width="220"/>
+    </td>
+    <td align="center"><b>Workshop Details</b><br/>
+      <img src="docs/screenshots/workshop-details-after-mobile.png" width="220"/>
+    </td>
+  </tr>
 
-#### Coordinator Dashboard
-![](docs/screenshots/coordinator-after-mobile.png)
-
-#### Instructor Dashboard
-![](docs/screenshots/instructor-after-mobile.png)
-
-#### Workshop Types
-![](docs/screenshots/workshop-types-after-mobile.png)
-
-#### Workshop Details
-![](docs/screenshots/workshop-details-after-mobile.png)
-
-#### Propose Workshop
-![](docs/screenshots/propose-after-mobile.png)
-
-#### Public Statistics
-![](docs/screenshots/statistics-after-mobile.png)
-
-#### Team Statistics
-![](docs/screenshots/team-stats-after-mobile.png)
+  <tr>
+    <td align="center"><b>Propose Workshop</b><br/>
+      <img src="docs/screenshots/propose-after-mobile.png" width="220"/>
+    </td>
+    <td align="center"><b>Public Statistics</b><br/>
+      <img src="docs/screenshots/statistics-after-mobile.png" width="220"/>
+    </td>
+    <td align="center"><b>Team Statistics</b><br/>
+      <img src="docs/screenshots/team-stats-after-mobile.png" width="220"/>
+    </td>
+  </tr>
+</table>
 
 ---
 
